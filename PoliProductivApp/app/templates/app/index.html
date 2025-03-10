@@ -1,0 +1,136 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Selección de Materias y Secciones</title>
+    <link rel="stylesheet" href="{% static 'app/css/styles.css' %}">
+</head>
+<body>
+    <h1>Selecciona tu Carrera, Semestres y Materias</h1>
+    <form>
+        <!-- Selector de Carrera -->
+        <label for="carrera">Carrera:</label>
+        <select id="carrera" name="carrera">
+            <option value="">Selecciona una carrera</option>
+            {% for carrera in carreras %}
+                <option value="{{ carrera.id }}">{{ carrera.nombre }}</option>
+            {% endfor %}
+        </select>
+
+        <!-- Lista de Semestres (Checkboxes) -->
+        <div id="semestres-container" style="display: none;">
+            <h2>Selecciona los Semestres:</h2>
+            <div id="semestres-list"></div>
+        </div>
+
+        <!-- Lista de Materias (Checkboxes) -->
+        <div id="materias-container" style="display: none;">
+            <h2>Selecciona las Materias:</h2>
+            <div id="materias-list"></div>
+        </div>
+    </form>
+
+    <!-- Incluir jQuery -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <!-- Script personalizado -->
+    <script>
+        $(document).ready(function() {
+            // Cargar semestres al seleccionar una carrera
+            $('#carrera').change(function() {
+                var carreraId = $(this).val();
+                if (carreraId) {
+                    $.ajax({
+                        url: '{% url "get_semestres" %}',
+                        data: {
+                            'carrera_id': carreraId
+                        },
+                        success: function(data) {
+                            $('#semestres-list').html(''); // Limpiar lista de semestres
+                            $.each(data, function(index, semestre) {
+                                // Agregar checkbox para cada semestre
+                                $('#semestres-list').append(
+                                    '<div>' +
+                                    '<input type="checkbox" class="semestre-checkbox" value="' + semestre + '" id="semestre-' + semestre + '">' +
+                                    '<label for="semestre-' + semestre + '"> Semestre ' + semestre + '</label>' +
+                                    '</div>'
+                                );
+                            });
+                            $('#semestres-container').show(); // Mostrar el contenedor de semestres
+                        }
+                    });
+                } else {
+                    $('#semestres-container').hide(); // Ocultar el contenedor de semestres
+                    $('#materias-container').hide(); // Ocultar el contenedor de materias
+                }
+            });
+
+            // Cargar materias al seleccionar un semestre
+            $(document).on('change', '.semestre-checkbox', function() {
+                var semestresSeleccionados = [];
+                $('.semestre-checkbox:checked').each(function() {
+                    semestresSeleccionados.push($(this).val());
+                });
+
+                if (semestresSeleccionados.length > 0) {
+                    $.ajax({
+                        url: '{% url "get_materias" %}',
+                        data: {
+                            'semestre_ids': semestresSeleccionados.join(','),
+                            'carrera_id': $('#carrera').val()
+                        },
+                        success: function(data) {
+                            $('#materias-list').html(''); // Limpiar lista de materias
+                            $.each(data, function(index, materia) {
+                                // Agregar checkbox para cada materia
+                                $('#materias-list').append(
+                                    '<div class="materia-item">' +
+                                    '<input type="checkbox" class="materia-checkbox" value="' + materia.nombre + '" id="materia-' + materia.id + '">' +
+                                    '<label for="materia-' + materia.id + '">' + materia.nombre+ '</label>' +
+                                    '<div class="secciones-container" id="secciones-' + materia.id + '" style="display: none; margin-left: 20px;"></div>' +
+                                    '</div>'
+                                );
+                            });
+                            $('#materias-container').show(); // Mostrar el contenedor de materias
+                        }
+                    });
+                } else {
+                    $('#materias-container').hide(); // Ocultar el contenedor de materias
+                }
+            });
+
+            // Cargar secciones al seleccionar una materia
+            $(document).on('change', '.materia-checkbox', function() {
+                var materiaId = $(this).val();
+                var seccionesContainer = $('#secciones-' + materiaId);
+
+                if ($(this).is(':checked')) {
+                    $.ajax({
+                        url: '{% url "get_secciones" %}',
+                        data: {
+                            'materia_id': materiaId,
+                            'carrera_id': $('#carrera').val()
+                        },
+                        success: function(data) {
+                            seccionesContainer.html(''); // Limpiar lista de secciones
+                            $.each(data, function(index, materia) {
+                                // Agregar checkbox para cada sección
+                                seccionesContainer.append(
+                                    '<div>' +
+                                    '<input type="checkbox" class="seccion-checkbox" value="' + materia.seccion + '" id="seccion-' + materia.seccion + '">' +
+                                    '<label for="seccion-' + materia.seccion + '">' + materia.nombre + ':' + materia.seccion + '</label>' +
+                                    '</div>'
+                                );
+                            });
+                            seccionesContainer.show(); // Mostrar el contenedor de secciones
+                        }
+                    });
+                } else {
+                    seccionesContainer.hide(); // Ocultar el contenedor de secciones
+                }
+            });
+        });
+    </script>
+</body>
+</html>
